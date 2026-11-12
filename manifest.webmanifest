@@ -1,0 +1,10 @@
+{
+  "name": "RESET",
+  "short_name": "RESET",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0b1512",
+  "theme_color": "#102a24",
+  "description": "Private self-control and habit tracker",
+  "icons": []
+}

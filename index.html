@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#102a24">
+<meta name="description" content="RESET — a private habit and self-control tracker.">
+<link rel="manifest" href="manifest.webmanifest">
+<title>RESET</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1512;--panel:#14241e;--muted:#a8b9b0;--green:#51d49a;--line:#294238;--red:#ff7777}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:#f2f7f3;font:16px system-ui,-apple-system,Segoe UI,sans-serif}
+main{max-width:650px;margin:auto;padding:18px 16px 40px}
+header{background:linear-gradient(145deg,#173d30,#10251e);border:1px solid #285440;border-radius:24px;padding:22px;margin:8px 0 18px}
+h1{margin:0;font-size:30px;letter-spacing:2px}h2{font-size:18px;margin:0 0 12px}
+p{color:var(--muted);line-height:1.5}.tag{color:#a8f1ca;font-size:12px;letter-spacing:1.5px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:18px}.stat,.card{background:var(--panel);border:1px solid var(--line);border-radius:17px;padding:15px}
+.num{font-size:27px;font-weight:750}.small{font-size:12px;color:var(--muted)}
+.card{margin:12px 0}.row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+button,select{font:inherit;border:0;border-radius:12px;padding:12px 14px;background:var(--green);color:#082117;font-weight:700}
+button.secondary{background:#263b32;color:#eff8f1;border:1px solid var(--line)}button.danger{background:#492626;color:#ffeaea;border:1px solid #794343}
+button:disabled{opacity:.4}.full{width:100%;margin-top:12px}
+.progress{height:10px;border-radius:20px;background:#263a31;overflow:hidden;margin:10px 0}.bar{height:100%;background:var(--green);width:0}
+label.task{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);color:#e8f0ea}
+input[type=checkbox]{width:19px;height:19px;accent-color:var(--green)}
+select{background:#263b32;color:white;border:1px solid var(--line)}
+ul{padding-left:20px;color:#d9e6dc;line-height:1.7}.notice{font-size:12px;color:var(--muted)}
+footer{text-align:center;color:#71857a;font-size:12px;margin-top:20px}
+</style>
+</head>
+<body>
+<main>
+<header>
+ <div class="tag">YOUR PRIVATE SELF-CONTROL TRACKER</div>
+ <h1>RESET</h1>
+ <p>Take back your control. One day at a time. No guilt, no shame.</p>
+ <div class="stats">
+  <div class="stat"><div class="num" id="streak">0</div><div class="small">Day streak</div></div>
+  <div class="stat"><div class="num" id="slips">0</div><div class="small">Slips logged</div></div>
+  <div class="stat"><div class="num" id="checks">0/5</div><div class="small">Today's tasks</div></div>
+ </div>
+</header>
+
+<section class="card">
+ <div class="row"><h2>Milestone goal</h2><select id="goal"><option>7</option><option>14</option><option selected>30</option><option>90</option></select></div>
+ <div class="row"><span class="small">Progress</span><strong id="percent">0%</strong></div>
+ <div class="progress"><div class="bar" id="bar"></div></div>
+ <div class="small" id="goaltext">0 of 30 days</div>
+</section>
+
+<section class="card">
+ <h2>Today's check-in</h2>
+ <div id="tasks"></div>
+ <button class="full" id="complete" disabled>Complete today's check-in</button>
+ <p class="notice">Complete this once per calendar day. A missed day does not erase your progress.</p>
+</section>
+
+<section class="card">
+ <h2>Urge support — 10-minute reset</h2>
+ <p>If an urge shows up, you can pause before acting. Try this short routine:</p>
+ <ul><li>Put your phone down and leave the triggering space.</li><li>Walk, stretch, or get a glass of water.</li><li>Breathe slowly for one minute.</li><li>Start a different activity for ten minutes.</li></ul>
+ <button class="full secondary" id="urge">I used my reset plan</button>
+ <div class="small" id="urgecount">Urge-plan uses: 0</div>
+</section>
+
+<section class="card">
+ <h2>Slip recovery</h2>
+ <p>A slip is information, not a verdict about you. Record it without punishment and identify what triggered it.</p>
+ <button class="full danger" id="slip">Log a slip</button>
+ <button class="full secondary" id="undo">Undo last slip</button>
+</section>
+
+<section class="card">
+ <h2>Privacy & settings</h2>
+ <p>Your progress is stored locally in this browser on this device. Clearing browser data may erase it.</p>
+ <button class="full secondary" id="export">Export my data</button>
+ <button class="full secondary" id="reset">Reset all app data</button>
+</section>
+
+<footer>RESET • Private local tracker • Not medical treatment</footer>
+</main>
+<script>
+const KEY='reset-pwa-v1';
+const tasks=['No porn today','No masturbation today','Avoided triggering content','Moved my body for 30 minutes','Kept a healthy sleep routine'];
+let data=JSON.parse(localStorage.getItem(KEY)||'null')||{streak:0,slips:0,urgeUses:0,doneDate:null,taskDate:'',checked:[],lastSlip:null};
+const today=()=>new Date().toLocaleDateString('en-CA');
+function save(){localStorage.setItem(KEY,JSON.stringify(data));render()}
+function render(){
+ if(data.taskDate!==today()){data.taskDate=today();data.checked=[];saveWithoutRender()}
+ document.getElementById('streak').textContent=data.streak;
+ document.getElementById('slips').textContent=data.slips;
+ document.getElementById('urgecount').textContent='Urge-plan uses: '+data.urgeUses;
+ const goal=+document.getElementById('goal').value;
+ const pct=Math.min(100,Math.round(data.streak/goal*100));
+ document.getElementById('percent').textContent=pct+'%';
+ document.getElementById('bar').style.width=pct+'%';
+ document.getElementById('goaltext').textContent=data.streak+' of '+goal+' days';
+ const host=document.getElementById('tasks');host.innerHTML='';
+ tasks.forEach((t,i)=>{const label=document.createElement('label');label.className='task';const cb=document.createElement('input');cb.type='checkbox';cb.checked=data.checked.includes(i);cb.addEventListener('change',()=>{data.checked=cb.checked?[...data.checked,i]:data.checked.filter(x=>x!==i);save()});label.append(cb,document.createTextNode(t));host.append(label)});
+ document.getElementById('checks').textContent=data.checked.length+'/5';
+ document.getElementById('complete').disabled=data.checked.length!==5||data.doneDate===today();
+ document.getElementById('complete').textContent=data.doneDate===today()?'Today completed ✓':'Complete today’s check-in';
+}
+function saveWithoutRender(){localStorage.setItem(KEY,JSON.stringify(data))}
+document.getElementById('goal').addEventListener('change',render);
+document.getElementById('complete').addEventListener('click',()=>{if(data.doneDate===today())return;data.streak+=1;data.doneDate=today();save()});
+document.getElementById('urge').addEventListener('click',()=>{data.urgeUses++;save()});
+document.getElementById('slip').addEventListener('click',()=>{if(!confirm('Log a slip? This resets your streak to zero. You can undo it once.'))return;data.lastSlip={slips:data.slips,streak:data.streak};data.slips++;data.streak=0;save()});
+document.getElementById('undo').addEventListener('click',()=>{if(!data.lastSlip){alert('There is no recent slip to undo.');return}data.slips=data.lastSlip.slips;data.streak=data.lastSlip.streak;data.lastSlip=null;save()});
+document.getElementById('export').addEventListener('click',()=>{const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='reset-progress.json';a.click();URL.revokeObjectURL(a.href)});
+document.getElementById('reset').addEventListener('click',()=>{if(!confirm('Delete all RESET data from this browser?'))return;localStorage.removeItem(KEY);location.reload()});
+if('serviceWorker' in navigator && location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js').catch(()=>{});
+render();
+</script>
+</body>
+</html>
